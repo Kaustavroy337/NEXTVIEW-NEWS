@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sheets Ticker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #000;
+            color: #fff;
+            overflow: hidden;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            width: 100vw;
+        }
+        .ticker-container {
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            overflow: hidden;
+            background: #111;
+            position: relative;
+        }
+        .ticker-content {
+            display: flex;
+            white-space: nowrap;
+            font-size: 90vw; /* Large text to fill screen */
+            font-weight: bold;
+            text-transform: uppercase;
+            position: absolute;
+            will-change: transform;
+            animation: scroll linear infinite;
+        }
+
+        @keyframes scroll {
+            from {
+                transform: translateX(0); /* Start just outside the right */
+            }
+            to {
+                transform: translateX(-50%); /* Scroll to half to create seamless effect */
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="ticker-container">
+        <div class="ticker-content" id="ticker"></div>
+    </div>
+
+    <script>
+        const sheetUrl = "https://script.google.com/macros/s/AKfycbwPbUapU2qLCVqK_1TRDfePnC3VZE9OEoTq4KnFIDERtwGQoIzgJ6-Hrv8OvWdRgUhg/exec"; 
+        const SCROLL_SPEED = 500; // Pixels per second (constant speed)
+
+        async function fetchGoogleSheetData() {
+            try {
+                const response = await fetch(sheetUrl);
+                const data = await response.json();
+
+                let tickerText = "";
+                data.forEach(item => {
+                    tickerText += `<span style="margin-right: 100px;"> *** ${item.text}</span>`;
+                });
+
+                const ticker = document.getElementById("ticker");
+                ticker.innerHTML = tickerText + tickerText; // Duplicate text for seamless looping
+
+                // Calculate animation speed dynamically
+                const textWidth = ticker.scrollWidth / 2; // Get width of original text
+                const duration = textWidth / SCROLL_SPEED; // Speed calculation
+
+                ticker.style.animationDuration = `${duration}s`; // Set animation duration
+            } catch (error) {
+                console.error("Error fetching Google Sheet data:", error);
+                document.getElementById("ticker").innerHTML = "⚠️ ERROR LOADING TICKER";
+            }
+        }
+
+        fetchGoogleSheetData(); // Initial data fetch
+
+        // Function to calculate time until 10 AM
+        function timeUntilNextRefresh() {
+            const now = new Date();
+            const refreshTime = new Date();
+            refreshTime.setHours(10, 0, 0, 0); // Set target refresh time to 10:00 AM
+
+            // If it's already past 10 AM today, set it for 10 AM tomorrow
+            if (now > refreshTime) {
+                refreshTime.setDate(refreshTime.getDate() + 1);
+            }
+
+            return refreshTime - now; // Time in milliseconds
+        }
+
+        // Function to refresh at 10 AM daily
+        function scheduleDailyRefresh() {
+            setTimeout(() => {
+                location.reload(); // Reload the page at 10 AM
+            }, timeUntilNextRefresh());
+
+            // Ensure the function runs again for the next day after reloading
+            setInterval(() => {
+                location.reload();
+            }, 24 * 60 * 60 * 1000); // Every 24 hours
+        }
+
+        scheduleDailyRefresh(); // Start the refresh timer
+    </script>
+
+</body>
+</html>
+
